@@ -14,7 +14,7 @@ from pytest_django.asserts import assertRedirects
 def test_pages_availability_for_anonymous_user(client, name):
     url = reverse(name)  # Получаем ссылку на нужный адрес.
     response = client.get(url)  # Выполняем запрос.
-    assert response.status_code == HTTPStatus.OK 
+    assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.parametrize(
@@ -24,7 +24,7 @@ def test_pages_availability_for_anonymous_user(client, name):
 def test_pages_availability_for_auth_user(not_author_client, name):
     url = reverse(name)
     response = not_author_client.get(url)
-    assert response.status_code == HTTPStatus.OK 
+    assert response.status_code == HTTPStatus.OK
 
 
 @pytest.mark.parametrize(
@@ -39,8 +39,6 @@ def test_pages_availability_for_author(author_client, name, note):
 
 @pytest.mark.parametrize(
     'parametrized_client, expected_status',
-    # Предварительно оборачиваем имена фикстур 
-    # в вызов функции pytest.lazy_fixture().
     (
         (pytest.lazy_fixture('not_author_client'), HTTPStatus.NOT_FOUND),
         (pytest.lazy_fixture('author_client'), HTTPStatus.OK)
@@ -48,7 +46,7 @@ def test_pages_availability_for_author(author_client, name, note):
 )
 @pytest.mark.parametrize(
     'name',
-    ('notes:detail', 'notes:edit', 'notes:delete'),
+    ('notes:detail', 'notes:edit', 'notes:delete')
 )
 def test_pages_availability_for_different_users(
         parametrized_client, name, note, expected_status
@@ -76,4 +74,4 @@ def test_redirects(client, name, args):
     url = reverse(name, args=args)
     expected_url = f'{login_url}?next={url}'
     response = client.get(url)
-    assertRedirects(response, expected_url) 
+    assertRedirects(response, expected_url)
