@@ -56,4 +56,4 @@ class TestRoutes(TestCase):
                 url = reverse(name, args=(self.comment.id,))
                 redirect_url = f'{login_url}?next={url}'
                 response = self.client.get(url)
-                self.assertRedirects(response, redirect_url) 
+                self.assertRedirects(response, redirect_url)

@@ -2,7 +2,7 @@ from datetime import datetime
 
 import pytest
 
-from django.test.client  import Client
+from django.test.client import Client
 
 from news.models import News, Comment
 
