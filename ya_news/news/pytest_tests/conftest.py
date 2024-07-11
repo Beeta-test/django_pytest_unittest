@@ -6,6 +6,7 @@ from django.test.client import Client
 from news.models import News, Comment
 from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
+
 @pytest.fixture
 def author(django_user_model):
     return django_user_model.objects.create(username='BIBA')
