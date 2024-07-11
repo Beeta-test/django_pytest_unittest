@@ -1,5 +1,8 @@
-import pytest
 from http import HTTPStatus
+#  Я когда-нибудь обязательно увижу
+# все бибилиотеки и сделаю проект без этих замечаний)
+
+import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertFormError
 
@@ -38,7 +41,6 @@ def test_comment_with_bad_words(reader_client, news, bad_word):
     url = reverse('news:detail', args=[news.pk])
     response = reader_client.post(url, {'text': bad_word})
     assert Comment.objects.count() == 0
-    assert 'form' in response.context
     assertFormError(response, 'form', 'text', WARNING)
 
 
@@ -46,12 +48,12 @@ def test_comment_with_bad_words(reader_client, news, bad_word):
 def test_author_delete_comment(author_client, comment):
     """
     Тестирует, что автор комментария может
-    редактировать и удалять свой комментарий.
+    удалять свой комментарий.
     """
     url = reverse('news:delete', args=[comment.pk])
     delete = author_client.post(url)
     assert delete.status_code == HTTPStatus.FOUND
-    assert not Comment.objects.filter(pk=comment.pk).exists()
+    assert Comment.objects.count() == 0
 
 
 @pytest.mark.django_db
@@ -72,10 +74,14 @@ def test_reader_cant_delete_comment(reader_client, comment):
     url = reverse('news:delete', args=[comment.pk])
     response = reader_client.post(url)
     assert response.status_code == HTTPStatus.NOT_FOUND
+    assert Comment.objects.count() == 1
 
 
 @pytest.mark.django_db
 def test_reader_cant_edit_comment(reader_client, comment, edit_form):
+    original_text = comment.text
     url = reverse('news:edit', args=[comment.pk])
     response = reader_client.post(url, edit_form)
     assert response.status_code == HTTPStatus.NOT_FOUND
+    comment.refresh_from_db()
+    assert comment.text == original_text

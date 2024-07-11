@@ -4,7 +4,9 @@ import pytest
 from django.test.client import Client
 
 from news.models import News, Comment
-from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
+
+
+NEWS_COMMENTS_COUNT = 10
 
 
 @pytest.fixture
@@ -43,14 +45,13 @@ def news():
 @pytest.fixture
 def create_news():
     news_list = []
-    for i in range(NEWS_COUNT_ON_HOME_PAGE):
+    for i in range(NEWS_COMMENTS_COUNT):
         news = News.objects.create(
             title=f'Test News {i}',
             text=f'Test content {i}',
             date=datetime.today()
         )
         news_list.append(news)
-    return news_list
 
 
 @pytest.fixture
@@ -64,23 +65,15 @@ def comment(author, news):
 
 
 @pytest.fixture
-def create_comment(author):
-    news = News.objects.create(
-        title='Test News',
-        text='Test content',
-        date=datetime.today()
-    )
-
+def create_comment(author, news):
     comment_list = []
-    for i in range(NEWS_COUNT_ON_HOME_PAGE):
+    for i in range(NEWS_COMMENTS_COUNT):
         comment = Comment.objects.create(
             news=news,
             author=author,
             text=f'Test comment {i}'
         )
         comment_list.append(comment)
-
-    return comment_list
 
 
 @pytest.fixture
@@ -95,9 +88,9 @@ def pk_comment(comment):
 
 @pytest.fixture
 def comment_form():
-    return {'text': 'Test comment'}
+    return {'text': 'бебра'}
 
 
 @pytest.fixture
 def edit_form():
-    return {'text': 'Update text'}
+    return {'text': 'Обновленный текст'}

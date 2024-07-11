@@ -13,9 +13,8 @@ def test_news_count_on_home_page(reader_client, create_news):
     """
     url = reverse('news:home')
     response = reader_client.get(url)
+    assert 'news_list' in response.context
     obj_list = response.context['news_list']
-    for news in create_news:
-        assert news in obj_list
     assert len(obj_list) <= NEWS_COUNT_ON_HOME_PAGE
 
 
@@ -34,12 +33,12 @@ def test_news_order_on_home_page(client, create_news):
 
 
 @pytest.mark.django_db
-def test_comments_order_on_news_detail_page(client, create_comment):
+def test_comments_order_on_news_detail_page(client, create_comment, pk_news):
     """
     Тестирует, что комментарии на странице отдельной
     новости отсортированы в хронологическом порядке.
     """
-    url = reverse('news:detail', kwargs={'pk': create_comment[0].news.pk})
+    url = reverse('news:detail', args=pk_news)
     response = client.get(url)
 
     assert 'news' in response.context

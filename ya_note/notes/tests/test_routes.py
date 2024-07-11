@@ -15,20 +15,16 @@ class TestRoutes(TestCase):
         """Создает тестовых пользователей и заметку."""
         cls.author = User.objects.create(username='BIBA')
         cls.reader = User.objects.create(username='BOBA')
+        cls.author_client = Client()
+        cls.reader_client = Client()
+        cls.author_client.force_login(cls.author)
+        cls.reader_client.force_login(cls.reader)
         cls.note = Note.objects.create(
             title='Заголовок',
             text='Текст',
             slug='slug',
             author=cls.author
         )
-
-    def setUp(self):
-        """Логинит клиенты для каждого теста."""
-        super().setUp()
-        self.author_client = Client()
-        self.reader_client = Client()
-        self.author_client.force_login(self.author)
-        self.reader_client.force_login(self.reader)
 
     def test_availability_page(self):
         """Проверяет доступность страниц для анонимного пользователя."""
@@ -49,13 +45,13 @@ class TestRoutes(TestCase):
         аутентифицированного пользователя.
         """
         urls = (
-            ('notes:list', None),
-            ('notes:add', None),
-            ('notes:success', None),
+            'notes:list',
+            'notes:add',
+            'notes:success',
         )
-        for name, args in urls:
+        for name in urls:
             with self.subTest(name=name):
-                url = reverse(name, args=args)
+                url = reverse(name)
                 response = self.author_client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
@@ -65,15 +61,15 @@ class TestRoutes(TestCase):
         заметки для автора и другого пользователя.
         """
         users_statuses = (
-            (self.author, HTTPStatus.OK),
-            (self.reader, HTTPStatus.NOT_FOUND)
+            (self.author_client, HTTPStatus.OK),
+            (self.reader_client, HTTPStatus.NOT_FOUND)
         )
-        for user, status in users_statuses:
-            self.client.force_login(user)
+
+        for client, status in users_statuses:
             for name in ('notes:edit', 'notes:delete', 'notes:detail'):
-                with self.subTest(user=user, name=name):
+                with self.subTest(client=client, name=name):
                     url = reverse(name, args=(self.note.slug,))
-                    response = self.client.get(url)
+                    response = client.get(url)
                     self.assertEqual(response.status_code, status)
 
     def test_redirect_for_anonymous_client(self):

@@ -17,20 +17,16 @@ class TestContent(TestCase):
         """Создает тестовых пользователей и заметку."""
         cls.author = User.objects.create(username='BIBA')
         cls.reader = User.objects.create(username='BOBA')
+        cls.author_client = Client()
+        cls.reader_client = Client()
+        cls.author_client.force_login(cls.author)
+        cls.reader_client.force_login(cls.reader)
         cls.note = Note.objects.create(
             title='Заголовок',
             text='Текст',
             slug='slug',
             author=cls.author
         )
-
-    def setUp(self):
-        """Логинит клиенты для каждого теста."""
-        super().setUp()
-        self.author_client = Client()
-        self.reader_client = Client()
-        self.author_client.force_login(self.author)
-        self.reader_client.force_login(self.reader)
 
     def test_note_in_object_list_and_visibility(self):
         """Проверяет, что заметка отображается в object_list
