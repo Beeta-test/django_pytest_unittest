@@ -1,10 +1,11 @@
 from http import HTTPStatus
 
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
 from notes.models import Note
+from notes.forms import NoteForm
 
 
 User = get_user_model()
@@ -23,36 +24,43 @@ class TestContent(TestCase):
             author=cls.author
         )
 
-    def test_note_in_object_list(self):
-        """Проверяет, что отдельная заметка передаётся
-        на страницу со списком заметок в object_list.
-        """
-        self.client.force_login(self.author)
-        url = reverse('notes:list')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertIn(self.note, response.context['object_list'])
+    def setUp(self):
+        """Логинит клиенты для каждого теста."""
+        super().setUp()
+        self.author_client = Client()
+        self.reader_client = Client()
+        self.author_client.force_login(self.author)
+        self.reader_client.force_login(self.reader)
 
-    def test_note_not_in_other_user_list(self):
-        """Проверяет, что заметки одного пользователя
-        не попадают в список заметок другого пользователя.
+    def test_note_in_object_list_and_visibility(self):
+        """Проверяет, что заметка отображается в object_list
+        только для соответствующего авторизованного пользователя.
         """
-        self.client.force_login(self.reader)
-        url = reverse('notes:list')
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertNotIn(self.note, response.context['object_list'])
+        test_cases = [
+            (self.author_client, True),
+            (self.reader_client, False),
+        ]
+
+        for client, expected_in_list in test_cases:
+            with self.subTest(client=client, expected_in_list=expected_in_list):
+                url = reverse('notes:list')
+                response = client.get(url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+                object_list = response.context['object_list']
+                self.assertIs(self.note in object_list, expected_in_list)
 
     def test_forms_in_create_and_edit_pages(self):
         """Проверяет, что на страницы создания
         и редактирования заметки передаются формы.
         """
-        self.client.force_login(self.author)
         urls = (
             reverse('notes:add'),
             reverse('notes:edit', args=(self.note.slug,)),
         )
         for url in urls:
-            response = self.client.get(url)
-            self.assertEqual(response.status_code, HTTPStatus.OK)
-            self.assertIn('form', response.context)
+            with self.subTest(url=url):
+                response = self.author_client.get(url)
+                self.assertEqual(response.status_code, HTTPStatus.OK)
+                self.assertIn('form', response.context)
+                form_obj = response.context['form']
+                self.assertIsInstance(form_obj, NoteForm)

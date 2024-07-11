@@ -1,41 +1,51 @@
 import pytest
 from django.urls import reverse
 
+from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
+from news.forms import CommentForm
+
 
 @pytest.mark.django_db
-def test_news_count_on_home_page(client):
+def test_news_count_on_home_page(reader_client, create_news):
     """
     Тестирует, что количество новостей
     на главной странице не превышает 10.
     """
     url = reverse('news:home')
-    response = client.get(url)
-    assert len(response.context['news_list']) <= 10
+    response = reader_client.get(url)
+    obj_list = response.context['news_list']
+    for news in create_news:
+        assert news in obj_list
+    assert len(obj_list) <= NEWS_COUNT_ON_HOME_PAGE
 
 
 @pytest.mark.django_db
-def test_news_order_on_home_page(client):
+def test_news_order_on_home_page(client, create_news):
     """
     Тестирует, что новости на главной странице
     отсортированы от самой свежей к самой старой.
     """
     url = reverse('news:home')
     response = client.get(url)
+    assert 'news_list' in response.context
     news_list = response.context['news_list']
     dates = [news.date for news in news_list]
     assert dates == sorted(dates, reverse=True)
 
 
 @pytest.mark.django_db
-def test_comments_order_on_news_detail_page(client, comment):
+def test_comments_order_on_news_detail_page(client, create_comment):
     """
     Тестирует, что комментарии на странице отдельной
     новости отсортированы в хронологическом порядке.
     """
-    url = reverse('news:detail', args=[comment.pk])
+    url = reverse('news:detail', kwargs={'pk': create_comment[0].news.pk})
     response = client.get(url)
+
+    assert 'news' in response.context
     news_obj = response.context['news']
     comments = news_obj.comment_set.all()
+
     created_times = [comment.created for comment in comments]
     assert created_times == sorted(created_times)
 
@@ -60,3 +70,5 @@ def test_comment_form_for_reader(reader_client, comment):
     url = reverse('news:detail', args=[comment.pk])
     response = reader_client.get(url)
     assert 'form' in response.context
+    form_obj = response.context['form']
+    assert isinstance(form_obj, CommentForm)

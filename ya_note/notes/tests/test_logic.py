@@ -4,6 +4,7 @@ from pytils.translit import slugify
 from django.contrib.auth import get_user_model
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.shortcuts import get_object_or_404
 
 from notes.forms import WARNING
 from notes.models import Note
@@ -25,28 +26,33 @@ class TestNoteCreation(TestCase):
             'slug': 'new-note'
         }
 
+    def setUp(self) -> None:
+        super().setUp()
+        Note.objects.all().delete()
+        self.initial_count = Note.objects.count()
+
     def test_anonymous_user_cant_create_note(self):
         """Аннонимный пользователь не может создавать заметки."""
         self.client.post(self.url, data=self.form_data)
         note_count = Note.objects.count()
-        self.assertEqual(note_count, 0)
+        self.assertEqual(note_count, self.initial_count)
 
     def test_user_can_create_note(self):
         """Залогиненный пользователь может создать заметку."""
         response = self.author_client.post(self.url, data=self.form_data)
         self.assertRedirects(response, reverse('notes:success'))
 
-        notes_count = Note.objects.count()
-        self.assertEqual(notes_count, 1)
-
-        note = Note.objects.get(slug='new-note')
+        self.assertEqual(Note.objects.count(), self.initial_count + 1)
+        note = get_object_or_404(Note, slug='new-note')
+        self.assertEqual(note.slug, self.form_data['slug'])
         self.assertEqual(note.title, self.form_data['title'])
         self.assertEqual(note.text, self.form_data['text'])
         self.assertEqual(note.author, self.user)
 
     def test_slug_notes(self):
         """Пользователь не может создавать заметки с одинаковыми slug."""
-        self.author_client.post(self.url, data=self.form_data)
+        response = self.author_client.post(self.url, data=self.form_data)
+        self.assertRedirects(response, reverse('notes:success'))
         duplicate_slug_data = {
             'title': 'Another Note',
             'text': 'Some other text',
@@ -60,7 +66,24 @@ class TestNoteCreation(TestCase):
             errors=f'new-note{WARNING}'
         )
         notes_count = Note.objects.count()
-        self.assertEqual(notes_count, 1)
+        self.assertEqual(notes_count, self.initial_count + 1)
+
+    def test_slug_auto_generation(self):
+        """Slug формируется автоматически, если он не заполнен."""
+        form_data_without_slug = self.form_data.copy()
+        if 'slug' in form_data_without_slug:
+            del form_data_without_slug['slug']
+        response = self.author_client.post(
+            self.url,
+            data=form_data_without_slug
+        )
+        self.assertRedirects(response, reverse('notes:success'))
+
+        notes_count = Note.objects.count()
+        self.assertEqual(notes_count, self.initial_count + 1)
+
+        note = Note.objects.get(title=form_data_without_slug['title'])
+        self.assertEqual(note.slug, slugify(form_data_without_slug['title']))
 
 
 class TestNoteEditDelete(TestCase):
@@ -107,34 +130,18 @@ class TestNoteEditDelete(TestCase):
         response = self.author_client.post(self.edit_url, data=self.form_data)
         self.assertRedirects(response, self.success_url)
         self.note.refresh_from_db()
+        self.assertEqual(self.note.slug, self.form_data['slug'])
         self.assertEqual(self.note.title, self.form_data['title'])
         self.assertEqual(self.note.text, self.form_data['text'])
 
     def test_reader_cant_edit_note(self):
         """Читалеть не может редактировать чужую заметку."""
+        original_slug = self.note.slug
+        original_title = self.note.title
+        original_text = self.note.text
         response = self.reader_client.post(self.edit_url, data=self.form_data)
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.note.refresh_from_db()
-        self.assertNotEqual(self.note.title, self.form_data['title'])
-        self.assertNotEqual(self.note.text, self.form_data['text'])
-
-    def test_slug_auto_generation(self):
-        """Slug формируется автоматически, если он не заполнен."""
-        form_data_without_slug = {
-            'title': 'Заметка без slug',
-            'text': 'Текст заметки'
-        }
-        response = self.author_client.post(
-            self.url,
-            data=form_data_without_slug
-        )
-        self.assertRedirects(response, reverse('notes:success'))
-
-        notes_count = Note.objects.count()
-        self.assertEqual(notes_count, 2)
-
-        note = Note.objects.get(title=form_data_without_slug['title'])
-        self.assertEqual(note.title, form_data_without_slug['title'])
-        self.assertEqual(note.text, form_data_without_slug['text'])
-        self.assertEqual(note.author, self.author)
-        self.assertEqual(note.slug, slugify(form_data_without_slug['title']))
+        self.assertEqual(self.note.slug, original_slug)
+        self.assertEqual(self.note.title, original_title)
+        self.assertEqual(self.note.text, original_text)

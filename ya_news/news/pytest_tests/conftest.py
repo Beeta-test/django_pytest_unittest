@@ -1,11 +1,10 @@
 from datetime import datetime
 
 import pytest
-
 from django.test.client import Client
 
 from news.models import News, Comment
-
+from yanews.settings import NEWS_COUNT_ON_HOME_PAGE
 
 @pytest.fixture
 def author(django_user_model):
@@ -33,20 +32,71 @@ def reader_client(reader):
 
 @pytest.fixture
 def news():
-    news = News.objects.create(
+    return News.objects.create(
         title='Заголовок',
         text='Текст новости',
         date=datetime.today()
     )
-    return news
+
+
+@pytest.fixture
+def create_news():
+    news_list = []
+    for i in range(NEWS_COUNT_ON_HOME_PAGE):
+        news = News.objects.create(
+            title=f'Test News {i}',
+            text=f'Test content {i}',
+            date=datetime.today()
+        )
+        news_list.append(news)
+    return news_list
 
 
 @pytest.fixture
 def comment(author, news):
-    comment = Comment.objects.create(
+    return Comment.objects.create(
         news=news,
         author=author,
         text='Текст комментария'
 
     )
-    return comment
+
+
+@pytest.fixture
+def create_comment(author):
+    news = News.objects.create(
+        title='Test News',
+        text='Test content',
+        date=datetime.today()
+    )
+
+    comment_list = []
+    for i in range(NEWS_COUNT_ON_HOME_PAGE):
+        comment = Comment.objects.create(
+            news=news,
+            author=author,
+            text=f'Test comment {i}'
+        )
+        comment_list.append(comment)
+
+    return comment_list
+
+
+@pytest.fixture
+def pk_news(news):
+    return (news.pk,)
+
+
+@pytest.fixture
+def pk_comment(comment):
+    return (comment.pk,)
+
+
+@pytest.fixture
+def comment_form():
+    return {'text': 'Test comment'}
+
+
+@pytest.fixture
+def edit_form():
+    return {'text': 'Update text'}

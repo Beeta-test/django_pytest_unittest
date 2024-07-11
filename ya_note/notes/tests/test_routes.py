@@ -1,7 +1,7 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 
 from notes.models import Note
@@ -22,17 +22,25 @@ class TestRoutes(TestCase):
             author=cls.author
         )
 
+    def setUp(self):
+        """Логинит клиенты для каждого теста."""
+        super().setUp()
+        self.author_client = Client()
+        self.reader_client = Client()
+        self.author_client.force_login(self.author)
+        self.reader_client.force_login(self.reader)
+
     def test_availability_page(self):
         """Проверяет доступность страниц для анонимного пользователя."""
         urls = (
-            ('notes:home', None),
-            ('users:login', None),
-            ('users:logout', None),
-            ('users:signup', None)
+            'notes:home',
+            'users:login',
+            'users:logout',
+            'users:signup',
         )
-        for name, args in urls:
+        for name in urls:
             with self.subTest(name=name):
-                url = reverse(name, args=args)
+                url = reverse(name)
                 response = self.client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
@@ -40,7 +48,6 @@ class TestRoutes(TestCase):
         """Проверяет доступность страниц для
         аутентифицированного пользователя.
         """
-        self.client.force_login(self.author)
         urls = (
             ('notes:list', None),
             ('notes:add', None),
@@ -49,7 +56,7 @@ class TestRoutes(TestCase):
         for name, args in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
-                response = self.client.get(url)
+                response = self.author_client.get(url)
                 self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_availability_for_note_edit_and_delete(self):
