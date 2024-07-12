@@ -44,14 +44,12 @@ def news():
 
 @pytest.fixture
 def create_news():
-    news_list = []
     for i in range(NEWS_COMMENTS_COUNT):
-        news = News.objects.create(
+        News.objects.create(
             title=f'Test News {i}',
             text=f'Test content {i}',
             date=datetime.today()
         )
-        news_list.append(news)
 
 
 @pytest.fixture
@@ -66,14 +64,12 @@ def comment(author, news):
 
 @pytest.fixture
 def create_comment(author, news):
-    comment_list = []
     for i in range(NEWS_COMMENTS_COUNT):
-        comment = Comment.objects.create(
+        Comment.objects.create(
             news=news,
             author=author,
             text=f'Test comment {i}'
         )
-        comment_list.append(comment)
 
 
 @pytest.fixture
@@ -89,8 +85,3 @@ def pk_comment(comment):
 @pytest.fixture
 def comment_form():
     return {'text': 'бебра'}
-
-
-@pytest.fixture
-def edit_form():
-    return {'text': 'Обновленный текст'}

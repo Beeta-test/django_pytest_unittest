@@ -50,9 +50,10 @@ class TestNoteCreation(TestCase):
             author=self.user,
             title='Note title',
             text='New next',
-            slug='new-note'
+            slug='new_note'
         )
         initial_count = Note.objects.count()
+        self.form_data['slug'] = note.slug
         response = self.author_client.post(self.url, data=self.form_data)
         self.assertFormError(
             response,

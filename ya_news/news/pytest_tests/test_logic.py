@@ -1,6 +1,4 @@
 from http import HTTPStatus
-#  Я когда-нибудь обязательно увижу
-# все бибилиотеки и сделаю проект без этих замечаний)
 
 import pytest
 from django.urls import reverse
@@ -57,12 +55,12 @@ def test_author_delete_comment(author_client, comment):
 
 
 @pytest.mark.django_db
-def test_author_edit_comment(author_client, comment, edit_form):
+def test_author_edit_comment(author_client, comment, comment_form):
     url = reverse('news:edit', args=[comment.pk])
-    response = author_client.post(url, edit_form)
+    response = author_client.post(url, comment_form)
     assert response.status_code == HTTPStatus.FOUND
     comment.refresh_from_db()
-    assert comment.text == edit_form['text']
+    assert comment.text == comment_form['text']
 
 
 @pytest.mark.django_db
@@ -78,10 +76,10 @@ def test_reader_cant_delete_comment(reader_client, comment):
 
 
 @pytest.mark.django_db
-def test_reader_cant_edit_comment(reader_client, comment, edit_form):
+def test_reader_cant_edit_comment(reader_client, comment, comment_form):
     original_text = comment.text
     url = reverse('news:edit', args=[comment.pk])
-    response = reader_client.post(url, edit_form)
+    response = reader_client.post(url, comment_form)
     assert response.status_code == HTTPStatus.NOT_FOUND
     comment.refresh_from_db()
     assert comment.text == original_text
